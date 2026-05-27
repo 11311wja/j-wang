@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Aurora - New Tab",
+  "version": "1.0.0",
+  "description": "Transform every new tab and Google search page into a living work of art.",
+  "chrome_url_overrides": {
+    "newtab": "src/newtab/index.html"
+  },
+  "permissions": [
+    "storage",
+    "identity",
+    "identity.email",
+    "geolocation"
+  ],
+  "host_permissions": [
+    "https://www.google.com/*",
+    "https://suggestqueries.google.com/*",
+    "https://api.openweathermap.org/*",
+    "https://www.googleapis.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/search*"
+      ],
+      "js": [
+        "src/content/google-search.js"
+      ],
+      "css": [
+        "src/content/google-search.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {},
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/google-search.css"
+      ],
+      "matches": [
+        "https://www.google.com/*"
+      ]
+    }
+  ]
+}
