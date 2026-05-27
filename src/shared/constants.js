@@ -159,7 +159,7 @@ export const DEFAULTS = {
     backgroundRotationMode: "daily",
     backgroundRotationMinutes: 30,
     selectedBackgroundId: DEFAULT_GRADIENTS[0].id,
-    searchBarPosition: { x: 0.5, y: 0.45, snap: "middle" },
+    searchBarPosition: { x: 0.5, y: 0.45 },
     widgetBarOffset: 0.5,
     greetingNameOverride: "",
     temperatureUnit: "f",

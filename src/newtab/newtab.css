@@ -197,7 +197,7 @@ img {
   top: 0;
   right: var(--scene-padding);
   display: flex;
-  gap: 12px;
+  gap: 0;
   pointer-events: auto;
 }
 
@@ -322,19 +322,6 @@ img {
   cursor: pointer;
 }
 
-.apps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 5px);
-  gap: 4px;
-}
-
-.apps-grid span {
-  width: 5px;
-  height: 5px;
-  border-radius: 2px;
-  background: rgba(20, 20, 20, 0.68);
-}
-
 .avatar-button {
   width: 38px;
   height: 38px;
@@ -372,10 +359,6 @@ img {
   z-index: 5;
   will-change: left, top, transform, width;
   animation: drift-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
-}
-
-.search-shell.is-snapping {
-  transition: left var(--transition-spring), top var(--transition-spring);
 }
 
 .search-shell__halo {

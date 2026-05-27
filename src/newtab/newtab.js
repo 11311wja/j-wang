@@ -31,7 +31,6 @@ const elements = {
   focusToggle: document.getElementById("focus-toggle"),
   focusHint: document.getElementById("focus-hint"),
   customizeDrawer: document.getElementById("customize-drawer"),
-  appsButton: document.getElementById("apps-button"),
   avatarButton: document.getElementById("avatar-button"),
   profileCluster: document.getElementById("profile-cluster"),
   helpOverlay: document.getElementById("help-overlay"),
@@ -436,10 +435,6 @@ function getDisplayName(state) {
 }
 
 function bindStaticButtons() {
-  elements.appsButton.addEventListener("click", () => {
-    openExternal("https://about.google/products/", true);
-  });
-
   elements.avatarButton.addEventListener("click", () => {
     openExternal("https://myaccount.google.com");
   });

@@ -5,12 +5,16 @@ export function setupSearch(app) {
   let fetchTimer = null;
   let abortController = null;
   let isDragging = false;
-  let dragOffset = { x: 0, y: 0 };
+  let dragOrigin = { x: 0, y: 0 };
+  let dragStartPosition = { x: 0.5, y: 0.45 };
+  let currentPosition = normalizePosition(store.getState().settings.searchBarPosition);
+  let pendingPosition = null;
+  let moveFrame = 0;
 
-  applyPosition(store.getState().settings.searchBarPosition);
+  applyPosition(currentPosition);
   store.subscribe((state) => {
     if (!isDragging) {
-      applyPosition(state.settings.searchBarPosition);
+      applyPosition(normalizePosition(state.settings.searchBarPosition));
     }
     elements.clearSearch.hidden = !elements.searchInput.value;
   });
@@ -78,43 +82,62 @@ export function setupSearch(app) {
   });
 
   elements.searchShell.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("input, button, .suggestions-shell")) {
+    if (event.button !== 2 || event.target.closest(".suggestions-shell")) {
       return;
     }
 
-    const rect = elements.searchShell.getBoundingClientRect();
+    event.preventDefault();
     isDragging = true;
-    dragOffset = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+    dragOrigin = {
+      x: event.clientX,
+      y: event.clientY
     };
-    elements.searchShell.setPointerCapture(event.pointerId);
+    dragStartPosition = currentPosition;
+    pendingPosition = currentPosition;
+    dismissSuggestions();
+    elements.searchShell.classList.add("is-moving");
   });
 
-  elements.searchShell.addEventListener("pointermove", (event) => {
+  window.addEventListener("pointermove", (event) => {
     if (!isDragging) {
       return;
     }
 
-    const nextX = clamp((event.clientX - dragOffset.x + elements.searchShell.offsetWidth / 2) / window.innerWidth, 0.15, 0.85);
-    const nextY = clamp((event.clientY - dragOffset.y + elements.searchShell.offsetHeight / 2) / window.innerHeight, 0.14, 0.86);
-    applyPosition({ x: nextX, y: nextY });
-  });
-
-  elements.searchShell.addEventListener("pointerup", async () => {
-    if (!isDragging) {
+    if ((event.buttons & 2) === 0) {
+      void finishDrag();
       return;
     }
 
-    isDragging = false;
-    const rect = elements.searchShell.getBoundingClientRect();
-    const x = clamp((rect.left + rect.width / 2) / window.innerWidth, 0.15, 0.85);
-    const y = clamp((rect.top + rect.height / 2) / window.innerHeight, 0.14, 0.86);
-    const snapped = snapPosition({ x, y });
-    elements.searchShell.classList.add("is-snapping");
-    applyPosition(snapped);
-    window.setTimeout(() => elements.searchShell.classList.remove("is-snapping"), 480);
-    await store.updateSettings({ searchBarPosition: snapped });
+    event.preventDefault();
+    schedulePosition(getDragPosition(event.clientX, event.clientY));
+  });
+
+  window.addEventListener("pointerup", (event) => {
+    if (!isDragging || event.button !== 2) {
+      return;
+    }
+
+    event.preventDefault();
+    schedulePosition(getDragPosition(event.clientX, event.clientY));
+    void finishDrag();
+  });
+
+  window.addEventListener("pointercancel", () => {
+    void finishDrag();
+  });
+
+  window.addEventListener("blur", () => {
+    void finishDrag();
+  });
+
+  elements.searchShell.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+
+  window.addEventListener("resize", () => {
+    if (!isDragging) {
+      applyPosition(normalizePosition(store.getState().settings.searchBarPosition));
+    }
   });
 
   elements.suggestionsList.addEventListener("mousedown", (event) => {
@@ -139,15 +162,81 @@ export function setupSearch(app) {
     },
     dismissSuggestions,
     async resetPosition() {
-      const next = { x: 0.5, y: 0.45, snap: "middle" };
+      const next = { x: 0.5, y: 0.45 };
       applyPosition(next);
       await store.updateSettings({ searchBarPosition: next });
     }
   };
 
   function applyPosition(position) {
+    currentPosition = position;
     elements.searchShell.style.left = `${position.x * 100}%`;
     elements.searchShell.style.top = `${position.y * 100}%`;
+  }
+
+  function schedulePosition(position) {
+    pendingPosition = position;
+    if (moveFrame) {
+      return;
+    }
+
+    moveFrame = window.requestAnimationFrame(() => {
+      moveFrame = 0;
+      if (!pendingPosition) {
+        return;
+      }
+
+      applyPosition(pendingPosition);
+      pendingPosition = null;
+    });
+  }
+
+  async function finishDrag() {
+    if (!isDragging) {
+      return;
+    }
+
+    isDragging = false;
+    elements.searchShell.classList.remove("is-moving");
+
+    if (moveFrame) {
+      window.cancelAnimationFrame(moveFrame);
+      moveFrame = 0;
+    }
+
+    const nextPosition = normalizePosition(pendingPosition ?? currentPosition);
+    pendingPosition = null;
+    applyPosition(nextPosition);
+    await store.updateSettings({ searchBarPosition: nextPosition });
+  }
+
+  function normalizePosition(position) {
+    const { minX, maxX, minY, maxY } = getViewportBounds();
+    return {
+      x: clamp(position?.x ?? 0.5, minX, maxX),
+      y: clamp(position?.y ?? 0.45, minY, maxY)
+    };
+  }
+
+  function getViewportBounds() {
+    const width = elements.searchShell.offsetWidth || 560;
+    const height = elements.searchShell.offsetHeight || 52;
+    const halfWidth = width / 2 / window.innerWidth;
+    const halfHeight = height / 2 / window.innerHeight;
+
+    return {
+      minX: clamp(halfWidth, 0.05, 0.95),
+      maxX: clamp(1 - halfWidth, 0.05, 0.95),
+      minY: clamp(halfHeight, 0.05, 0.95),
+      maxY: clamp(1 - halfHeight, 0.05, 0.95)
+    };
+  }
+
+  function getDragPosition(clientX, clientY) {
+    return normalizePosition({
+      x: dragStartPosition.x + ((clientX - dragOrigin.x) / window.innerWidth),
+      y: dragStartPosition.y + ((clientY - dragOrigin.y) / window.innerHeight)
+    });
   }
 
   function requestSuggestions(query) {
@@ -252,24 +341,6 @@ function highlightSuggestion(suggestion, query) {
   }
 
   return safeSuggestion.replace(new RegExp(`(${safeQuery})`, "i"), "<strong>$1</strong>");
-}
-
-function snapPosition(position) {
-  const centerDelta = Math.abs(position.x - 0.5);
-  const snapTargets = [
-    { y: 0.24, snap: "top" },
-    { y: 0.45, snap: "middle" },
-    { y: 0.68, snap: "bottom" }
-  ];
-
-  if (centerDelta < 0.12) {
-    const closeTarget = snapTargets.find((target) => Math.abs(position.y - target.y) < 0.08);
-    if (closeTarget) {
-      return { x: 0.5, y: closeTarget.y, snap: closeTarget.snap };
-    }
-  }
-
-  return { ...position, snap: "free" };
 }
 
 function clamp(value, min, max) {
