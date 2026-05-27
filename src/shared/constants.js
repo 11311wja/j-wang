@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 export const SYNC_STORAGE_SOFT_LIMIT = 95 * 1024;
 export const STICKER_LIMIT = 20;
 
@@ -116,6 +116,27 @@ export const DEFAULT_GRADIENTS = [
     type: "gradient",
     value:
       "radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.8), transparent 28%), radial-gradient(circle at 85% 12%, rgba(195, 220, 255, 0.7), transparent 34%), linear-gradient(135deg, #e8f0ff 0%, #f5f0e8 48%, #d2d9ff 100%)"
+  },
+  {
+    id: "nocturne",
+    label: "Nocturne Glass",
+    type: "gradient",
+    value:
+      "linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 38%), radial-gradient(circle at 22% 12%, rgba(118, 255, 224, 0.34), transparent 30%), radial-gradient(circle at 76% 28%, rgba(255, 204, 112, 0.28), transparent 34%), linear-gradient(150deg, #05131f 0%, #18304b 48%, #5a4164 100%)"
+  },
+  {
+    id: "koi",
+    label: "Koi Garden",
+    type: "gradient",
+    value:
+      "radial-gradient(circle at 22% 18%, rgba(255, 250, 236, 0.78), transparent 26%), radial-gradient(circle at 70% 24%, rgba(255, 126, 101, 0.42), transparent 32%), radial-gradient(circle at 46% 78%, rgba(76, 201, 172, 0.38), transparent 34%), linear-gradient(145deg, #18231f 0%, #38615a 46%, #f2b28c 100%)"
+  },
+  {
+    id: "atelier",
+    label: "Atelier Light",
+    type: "gradient",
+    value:
+      "linear-gradient(100deg, rgba(255, 255, 255, 0.55), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.28)), radial-gradient(circle at 18% 22%, rgba(255, 222, 150, 0.42), transparent 30%), radial-gradient(circle at 84% 18%, rgba(145, 191, 255, 0.46), transparent 34%), linear-gradient(135deg, #f7efe1 0%, #d8e3ef 48%, #b9c7a5 100%)"
   }
 ];
 
@@ -154,7 +175,7 @@ export const DEFAULTS = {
     fontPairing: FONT_PAIRINGS[0].id,
     backgroundBlur: 0,
     backgroundDim: 18,
-    parallax: true,
+    parallax: false,
     backgroundRotationEnabled: false,
     backgroundRotationMode: "daily",
     backgroundRotationMinutes: 30,
@@ -167,6 +188,8 @@ export const DEFAULTS = {
     weatherManualLocation: "",
     weatherApiKey: "",
     widgetVisibility: { ...DEFAULT_WIDGETS },
+    widgetScale: 1,
+    iconScale: 1,
     searchProvider: "google",
     showDateUnderGreeting: true,
     reduceMotionOverride: false

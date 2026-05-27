@@ -4,7 +4,10 @@ import { extractDominantHue } from "../../shared/colorExtract.js";
 const GRADIENT_HUES = {
   dawn: 28,
   aurora: 170,
-  linen: 214
+  linen: 214,
+  nocturne: 190,
+  koi: 26,
+  atelier: 88
 };
 
 export function setupBackground(app) {
@@ -14,8 +17,6 @@ export function setupBackground(app) {
   let lastBackgroundKey = "";
   let lastAccentKey = "";
   let wallpaperSyncKey = "";
-  let pendingParallaxFrame = 0;
-  let pendingParallaxPoint = null;
 
   const updateFromState = async (state) => {
     const background = resolveCurrentBackground(state);
@@ -51,43 +52,14 @@ export function setupBackground(app) {
     document.documentElement.style.setProperty("--background-dim", `${state.settings.backgroundDim / 100}`);
     document.documentElement.style.setProperty("--background-blur", `${state.settings.backgroundBlur}px`);
 
-    if (!state.settings.parallax) {
-      document.documentElement.style.setProperty("--parallax-x", "0px");
-      document.documentElement.style.setProperty("--parallax-y", "0px");
-    }
+    document.documentElement.style.setProperty("--parallax-x", "0px");
+    document.documentElement.style.setProperty("--parallax-y", "0px");
 
     await updateAccentHue(background, state);
   };
 
   store.subscribe((state) => {
     void updateFromState(state);
-  });
-
-  window.addEventListener("pointermove", (event) => {
-    const state = store.getState();
-    if (!state.settings.parallax || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-
-    pendingParallaxPoint = {
-      x: event.clientX,
-      y: event.clientY
-    };
-
-    if (pendingParallaxFrame) {
-      return;
-    }
-
-    pendingParallaxFrame = window.requestAnimationFrame(() => {
-      pendingParallaxFrame = 0;
-      if (!pendingParallaxPoint) {
-        return;
-      }
-      const mx = (pendingParallaxPoint.x / window.innerWidth - 0.5) * -16;
-      const my = (pendingParallaxPoint.y / window.innerHeight - 0.5) * -16;
-      document.documentElement.style.setProperty("--parallax-x", `${mx.toFixed(2)}px`);
-      document.documentElement.style.setProperty("--parallax-y", `${my.toFixed(2)}px`);
-    });
   });
 
   return {
@@ -153,7 +125,7 @@ export function setupBackground(app) {
     async resetParallax() {
       document.documentElement.style.setProperty("--parallax-x", "0px");
       document.documentElement.style.setProperty("--parallax-y", "0px");
-      await store.updateSettings({ parallax: true });
+      await store.updateSettings({ parallax: false });
     }
   };
 

@@ -84,6 +84,8 @@ export function createNotesWidget(app) {
       void createNote();
     });
 
+    window.addEventListener("resize", renderWindow);
+
     refs.close.addEventListener("click", () => {
       windowOpen = false;
       renderWindow();
@@ -195,8 +197,10 @@ export function createNotesWidget(app) {
     }
 
     noteWindow.style.setProperty("--note-surface", DEFAULT_NOTE_COLORS[note.color]?.surface ?? DEFAULT_NOTE_COLORS.yellow.surface);
-    noteWindow.style.left = `${note.position?.x ?? 24}px`;
-    noteWindow.style.top = `${note.position?.y ?? 180}px`;
+    const maxLeft = Math.max(12, window.innerWidth - noteWindow.offsetWidth - 12);
+    const maxTop = Math.max(12, window.innerHeight - noteWindow.offsetHeight - 12);
+    noteWindow.style.left = `${clamp(note.position?.x ?? 24, 12, maxLeft)}px`;
+    noteWindow.style.top = `${clamp(note.position?.y ?? 180, 12, maxTop)}px`;
 
     renderTabs(refs.windowTabs);
     renderColors();

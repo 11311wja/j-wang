@@ -35,6 +35,9 @@ export function setupWidgets(app) {
   let dragging = false;
 
   galleryTrigger.addEventListener("click", openGallery);
+  window.addEventListener("resize", () => {
+    updateLayout(store.getState());
+  });
 
   handle.addEventListener("pointerdown", (event) => {
     dragging = true;

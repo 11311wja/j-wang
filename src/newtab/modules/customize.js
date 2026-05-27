@@ -32,6 +32,9 @@ export function setupCustomize(app) {
   function render() {
     const state = store.getState();
     const backgroundLibrary = app.controllers.background?.getLibrary() ?? [];
+    const widgetScaleValue = Math.round((state.settings.widgetScale ?? 1) * 100);
+    const iconScaleValue = Math.round((state.settings.iconScale ?? 1) * 100);
+
     elements.customizeDrawer.classList.toggle("is-open", isOpen);
     elements.customizeDrawer.innerHTML = `
       <div class="customize-drawer__header">
@@ -94,9 +97,6 @@ export function setupCustomize(app) {
               <label class="toggle-label" for="background-dim-range">Dim overlay</label>
               <input id="background-dim-range" type="range" min="0" max="60" step="1" value="${state.settings.backgroundDim}" data-setting-range="backgroundDim">
             </div>
-            <div class="toggle-row">
-              <button type="button" class="drawer-toggle ${state.settings.parallax ? "is-active" : ""}" data-toggle-setting="parallax">Parallax ${state.settings.parallax ? "On" : "Off"}</button>
-            </div>
           </div>
         </section>
 
@@ -140,6 +140,20 @@ export function setupCustomize(app) {
             <div class="toggle-row">
               <button type="button" class="drawer-toggle ${state.settings.clockFormat === "12h" ? "is-active" : ""}" data-layout-clock="12h">12h clock</button>
               <button type="button" class="drawer-toggle ${state.settings.clockFormat === "24h" ? "is-active" : ""}" data-layout-clock="24h">24h clock</button>
+            </div>
+            <div class="range-field">
+              <label class="range-field__label" for="widget-size-range">
+                <span>Widget size</span>
+                <output>${widgetScaleValue}%</output>
+              </label>
+              <input id="widget-size-range" type="range" min="82" max="134" step="1" value="${widgetScaleValue}" data-setting-range="widgetScale" data-setting-factor="100">
+            </div>
+            <div class="range-field">
+              <label class="range-field__label" for="icon-size-range">
+                <span>Icon size</span>
+                <output>${iconScaleValue}%</output>
+              </label>
+              <input id="icon-size-range" type="range" min="82" max="148" step="1" value="${iconScaleValue}" data-setting-range="iconScale" data-setting-factor="100">
             </div>
           </div>
         </section>
@@ -187,6 +201,7 @@ export function setupCustomize(app) {
           </div>
         </section>
       </div>
+      <button type="button" class="customize-drawer__scroll-cue" data-customize-scroll aria-label="Scroll customization options"></button>
     `;
 
     elements.customizeDrawer.querySelector("[data-customize-close]").addEventListener("click", () => {
@@ -195,12 +210,37 @@ export function setupCustomize(app) {
     });
 
     bindActions();
+    bindDrawerScrollCue();
 
     if (isOpen && pendingSection) {
       const section = elements.customizeDrawer.querySelector(`[data-customize-section="${pendingSection}"]`);
       section?.scrollIntoView({ block: "start", behavior: "smooth" });
       pendingSection = "";
     }
+  }
+
+  function bindDrawerScrollCue() {
+    const sections = elements.customizeDrawer.querySelector(".customize-drawer__sections");
+    const scrollCue = elements.customizeDrawer.querySelector("[data-customize-scroll]");
+    if (!sections || !scrollCue) {
+      return;
+    }
+
+    const syncCue = () => {
+      const hasOverflow = sections.scrollHeight - sections.clientHeight > 18;
+      const isAtEnd = sections.scrollTop + sections.clientHeight >= sections.scrollHeight - 28;
+      scrollCue.classList.toggle("is-hidden", !isOpen || !hasOverflow || isAtEnd);
+    };
+
+    scrollCue.addEventListener("click", () => {
+      sections.scrollBy({
+        top: Math.max(180, sections.clientHeight * 0.72),
+        behavior: "smooth"
+      });
+    });
+
+    sections.addEventListener("scroll", syncCue, { passive: true });
+    window.requestAnimationFrame(syncCue);
   }
 
   function bindActions() {
@@ -250,8 +290,11 @@ export function setupCustomize(app) {
 
     elements.customizeDrawer.querySelectorAll("[data-setting-range]").forEach((input) => {
       input.addEventListener("input", async () => {
+        const factor = Number(input.dataset.settingFactor || 1);
+        const nextValue = Number(input.value) / factor;
+        input.closest(".range-field")?.querySelector("output")?.replaceChildren(`${input.value}%`);
         await store.updateSettings({
-          [input.dataset.settingRange]: Number(input.value)
+          [input.dataset.settingRange]: nextValue
         });
       });
     });

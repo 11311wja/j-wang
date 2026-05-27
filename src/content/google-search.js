@@ -1,18 +1,25 @@
 (() => {
-  const SELECTORS = {
-    body: "body",
+  const SEL = {
+    resultCard: ".g, .hlcw0c, .MjjYud .g",
+    title: ".LC20lb, .yuRUbf h3",
+    snippet: ".VwiC3b, .lEBKkf, .lyLwlc",
+    url: ".tjvcx, cite, .qLRx3b, .TbwUpd",
+    searchBar: "#searchform, form[role='search']",
+    navBar: "#appbar, #top_nav, .sfbg",
+    body: "html, body, #cnt, #rcnt, #center_col, #rhs, #appbar, #top_nav",
     root: "#rcnt, #main, #cnt",
-    centerColumn: "#center_col, .eqAnXb",
-    searchForm: "#searchform, form[role='search']",
-    results: ".g, .MjjYud, .hlcw0c",
-    resultTitle: ".yuRUbf a h3, h3.LC20lb, h3",
-    resultSnippet: ".VwiC3b, .lyLwlc",
-    heroImage: "#rhs img, #kp-wp-tab-overview img, .ivg-i img, img[data-atf]"
+    centerColumn: "#center_col, .eqAnXb"
   };
+
+  const DEFAULT_WASH =
+    "radial-gradient(circle at 20% 20%, rgba(255, 219, 171, 0.55), transparent 28%), radial-gradient(circle at 78% 14%, rgba(159, 229, 255, 0.32), transparent 32%), linear-gradient(140deg, #0c1d35 0%, #1f4f73 52%, #c9d5f6 100%)";
 
   const state = {
     panel: null,
-    heroHost: null,
+    wallpaperSurface: null,
+    blendLayer: null,
+    horizonFade: null,
+    grainLayer: null,
     observer: null,
     accentHue: 210,
     wallpaper: null
@@ -39,122 +46,117 @@
   }
 
   function initialize() {
-    const body = document.querySelector(SELECTORS.body);
+    const body = document.body;
     if (!body) {
       return;
     }
 
     document.documentElement.style.setProperty("--aurora-accent-hue", String(state.accentHue));
     body.classList.add("aurora-search-active");
-    ensurePanel();
+    ensureWatercolorLayers();
+    updateWallpaper();
     decorateSearch();
     observeGoogle();
+    observeWallpaperChanges();
   }
 
-  function ensurePanel() {
-    const existing = document.getElementById("aurora-panel");
-    if (existing) {
-      state.panel = existing;
-      updatePanelAppearance();
-      updatePanelContent();
+  function ensureWatercolorLayers() {
+    state.panel = ensureLayer("aurora-panel");
+    state.panel.replaceChildren();
+
+    state.wallpaperSurface = document.createElement("div");
+    state.wallpaperSurface.className = "aurora-panel__wallpaper";
+    state.panel.appendChild(state.wallpaperSurface);
+
+    state.blendLayer = ensureLayer("aurora-watercolor-blend");
+    state.horizonFade = ensureLayer("aurora-horizon-fade");
+    state.grainLayer = ensureLayer("aurora-paper-grain");
+  }
+
+  function ensureLayer(id) {
+    let layer = document.getElementById(id);
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.id = id;
+      layer.setAttribute("aria-hidden", "true");
+      document.body.appendChild(layer);
+    }
+    return layer;
+  }
+
+  function updateWallpaper() {
+    if (!state.wallpaperSurface) {
       return;
     }
 
-    state.panel = document.createElement("aside");
-    state.panel.id = "aurora-panel";
-    state.panel.setAttribute("aria-hidden", "true");
-    state.panel.innerHTML = `
-      <div class="aurora-panel__wallpaper"></div>
-      <div class="aurora-panel__blend"></div>
-      <div class="aurora-panel__content">
-        <div class="aurora-panel__hero-host"></div>
-        <div class="aurora-panel__wordmark">✦ Aurora</div>
-      </div>
-    `;
-
-    document.body.appendChild(state.panel);
-    state.heroHost = state.panel.querySelector(".aurora-panel__hero-host");
-    updatePanelAppearance();
-    updatePanelContent();
-  }
-
-  function updatePanelAppearance() {
-    if (!state.panel) {
-      return;
-    }
-
-    const wallpaper = state.panel.querySelector(".aurora-panel__wallpaper");
-    wallpaper.style.background = "";
-    wallpaper.style.backgroundImage = "";
+    state.wallpaperSurface.style.background = "";
+    state.wallpaperSurface.style.backgroundImage = "";
 
     if (!state.wallpaper) {
-      wallpaper.style.background =
-        "radial-gradient(circle at 20% 20%, rgba(255, 219, 171, 0.55), transparent 28%), radial-gradient(circle at 78% 14%, rgba(159, 229, 255, 0.32), transparent 32%), linear-gradient(140deg, #0c1d35 0%, #1f4f73 52%, #c9d5f6 100%)";
+      state.wallpaperSurface.style.background = DEFAULT_WASH;
       return;
     }
 
     if (state.wallpaper.type === "gradient") {
-      wallpaper.style.background = state.wallpaper.value;
-    } else {
-      wallpaper.style.backgroundImage = `url("${state.wallpaper.value}")`;
-    }
-  }
-
-  function updatePanelContent() {
-    if (!state.heroHost) {
+      state.wallpaperSurface.style.background = state.wallpaper.value;
       return;
     }
 
-    const hero = document.querySelector(SELECTORS.heroImage);
-    const query = new URLSearchParams(location.search).get("q") ?? "Search";
-    state.heroHost.innerHTML = "";
-
-    if (hero?.src) {
-      const figure = document.createElement("figure");
-      figure.className = "aurora-panel__hero";
-      figure.innerHTML = `
-        <img src="${escapeHtml(hero.src)}" alt="">
-        <figcaption>${escapeHtml(query)}</figcaption>
-      `;
-      state.heroHost.appendChild(figure);
-      return;
-    }
-
-    const orb = document.createElement("div");
-    orb.className = "aurora-panel__orb";
-    orb.innerHTML = `
-      <div class="aurora-panel__orb-surface"></div>
-      <p>${escapeHtml(query)}</p>
-    `;
-    state.heroHost.appendChild(orb);
+    state.wallpaperSurface.style.backgroundImage = `url("${escapeCssUrl(state.wallpaper.value)}")`;
   }
 
   function decorateSearch() {
-    document.querySelectorAll(SELECTORS.results).forEach((result) => {
+    document.querySelectorAll(SEL.resultCard).forEach((result) => {
+      if (!(result instanceof HTMLElement) || result.dataset.aurora) {
+        return;
+      }
+      result.dataset.aurora = "true";
       result.classList.add("aurora-glass-result");
     });
 
-    document.querySelector(SELECTORS.centerColumn)?.classList.add("aurora-center-column");
-    document.querySelector(SELECTORS.searchForm)?.classList.add("aurora-searchform");
+    document.querySelectorAll(SEL.searchBar).forEach((node) => {
+      node.classList.add("aurora-searchform");
+    });
+
+    document.querySelectorAll(SEL.navBar).forEach((node) => {
+      node.classList.add("aurora-navbar");
+    });
+
+    document.querySelector(SEL.centerColumn)?.classList.add("aurora-center-column");
+    document.querySelector(SEL.root)?.classList.add("aurora-root");
   }
 
   function observeGoogle() {
-    if (state.observer) {
-      state.observer.disconnect();
-    }
-
+    state.observer?.disconnect();
     state.observer = new MutationObserver(() => {
       try {
         decorateSearch();
-        updatePanelContent();
       } catch {
-        // Aurora should stay invisible if Google changes markup.
+        // Google changes markup frequently; Aurora should fail soft.
       }
     });
 
-    state.observer.observe(document.documentElement, {
+    state.observer.observe(document.body, {
       childList: true,
       subtree: true
+    });
+  }
+
+  function observeWallpaperChanges() {
+    chrome.storage?.onChanged?.addListener((changes, areaName) => {
+      if (areaName !== "local") {
+        return;
+      }
+
+      if (changes.currentWallpaper?.newValue) {
+        state.wallpaper = changes.currentWallpaper.newValue;
+        updateWallpaper();
+      }
+
+      if (changes.lastAccentHue?.newValue != null) {
+        state.accentHue = changes.lastAccentHue.newValue;
+        document.documentElement.style.setProperty("--aurora-accent-hue", String(state.accentHue));
+      }
     });
   }
 
@@ -162,12 +164,7 @@
     return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
   }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+  function escapeCssUrl(value) {
+    return String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"');
   }
 })();

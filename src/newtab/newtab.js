@@ -384,6 +384,7 @@ async function hydrateProfile() {
 
 function renderBaseUI(state) {
   applyTypography(state.settings.fontPairing);
+  applyInterfaceScale(state.settings);
   const name = getDisplayName(state);
   const greeting = getGreetingForHour(new Date().getHours());
 
@@ -402,6 +403,8 @@ function renderBaseUI(state) {
   document.documentElement.style.setProperty("--accent-hue", state.local.lastAccentHue);
   document.documentElement.style.setProperty("--background-dim", `${state.settings.backgroundDim / 100}`);
   document.documentElement.style.setProperty("--background-blur", `${state.settings.backgroundBlur}px`);
+  document.documentElement.style.setProperty("--parallax-x", "0px");
+  document.documentElement.style.setProperty("--parallax-y", "0px");
 
   document.body.classList.toggle("focus-mode", Boolean(state.settings.focusMode));
   document.body.classList.toggle("has-background-frost", state.settings.backgroundBlur > 0);
@@ -423,6 +426,33 @@ function applyTypography(fontPairingId) {
   document.documentElement.style.setProperty("--font-display", pairing.displayFont);
   document.documentElement.style.setProperty("--font-body", pairing.bodyFont);
   document.documentElement.style.setProperty("--font-accent", pairing.accentFont);
+}
+
+function applyInterfaceScale(settings) {
+  const widgetScale = clampNumber(settings.widgetScale, 0.82, 1.34, 1);
+  const iconScale = clampNumber(settings.iconScale, 0.82, 1.48, 1);
+  const root = document.documentElement.style;
+
+  root.setProperty("--widget-bar-collapsed-width", `${Math.round(68 * widgetScale)}px`);
+  root.setProperty("--widget-bar-expanded-width", `${Math.round(280 * widgetScale)}px`);
+  root.setProperty("--widget-card-min-height", `${Math.round(52 * widgetScale)}px`);
+  root.setProperty("--widget-gap", `${Math.round(10 * widgetScale)}px`);
+  root.setProperty("--widget-bar-padding-x", `${Math.round(8 * widgetScale)}px`);
+  root.setProperty("--widget-bar-padding-y", `${Math.round(12 * widgetScale)}px`);
+  root.setProperty("--widget-panel-padding", `${Math.round(14 * widgetScale)}px`);
+  root.setProperty("--shortcut-pill-min-height", `${Math.round(74 * widgetScale)}px`);
+  root.setProperty("--shortcut-pill-padding", `${Math.round(10 * widgetScale)}px`);
+  root.setProperty("--widget-clock-size", `${(2.8 * widgetScale).toFixed(2)}rem`);
+  root.setProperty("--note-window-width", `${Math.round(280 * widgetScale)}px`);
+  root.setProperty("--note-window-min-height", `${Math.round(320 * widgetScale)}px`);
+
+  root.setProperty("--widget-icon-box", `${Math.round(28 * iconScale)}px`);
+  root.setProperty("--widget-glyph-size", `${(1.1 * iconScale).toFixed(2)}rem`);
+  root.setProperty("--shortcut-icon-size", `${Math.round(26 * iconScale)}px`);
+  root.setProperty("--weather-icon-size", `${Math.round(52 * iconScale)}px`);
+  root.setProperty("--weather-glyph-size", `${(1.5 * iconScale).toFixed(2)}rem`);
+  root.setProperty("--music-art-size", `${Math.round(40 * iconScale)}px`);
+  root.setProperty("--sticker-base-size", `${Math.round(120 * iconScale)}px`);
 }
 
 function getDisplayName(state) {
@@ -899,4 +929,12 @@ function areValuesEqual(left, right) {
   }
 
   return false;
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, number));
 }
